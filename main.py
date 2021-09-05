@@ -1,7 +1,7 @@
 import time as TIME
 from random import choice, randint
-from pygame import display, event, draw, time, QUIT, MOUSEBUTTONDOWN, mouse
-
+from pygame import display, event, draw, time, QUIT, MOUSEBUTTONDOWN, mouse, KEYDOWN, key, K_p
+from pygame.constants import K_SPACE
 
 FPS = 60000
 WIGHT, HEIGTH = 1200, 600
@@ -10,9 +10,6 @@ BLACK = (0, 0, 0)
 GRAY = (60, 60, 60)
 colors = [[255, 255, 255], [255, 0, 0], [0, 255, 0], [0, 0, 255]]
 clock = time.Clock()
-listFirstGen = [[choice([1, 0, 0, 0]) for j in range(int(HEIGTH/10))] for i in range(int(WIGHT/10))]
-listNextGen = [[choice([1, 0, 0, 0]) for j in range(int(HEIGTH/10))] for i in range(int(WIGHT/10))]
-
 
 
 
@@ -55,7 +52,7 @@ def drawNet(disp, wight, heigth):
     display.update()
     pass
 
-def drawNPS(disp, x, y):
+def drawNPS(disp, x, y, col):
     if 0 <= x % 10 <= 4:
         posX = x - x % 10
     elif 5 <= x % 10 <= 10:
@@ -64,7 +61,7 @@ def drawNPS(disp, x, y):
         posY = y - y % 10
     elif 5 <= y % 10 <= 10:
         posY = y - y % 10 + 10
-    draw.rect(disp, WHITE, [posX+1, posY+1, 8, 8])
+    draw.rect(disp, col, [posX+1, posY+1, 8, 8])
     display.update(posX, posY, 10, 10)
     pass
 
@@ -105,13 +102,20 @@ def getNeighbors(list, x, y) -> int:
         count += 1
     return count
 
-def getNextGen (listfg, minneighbors, maxneighbors, birthNeibors) -> list:
+def getNPS(list)->int:
+    count = 0
+    for i in range(len(list)):
+        for j in range(len(list[i])):
+            if list[i][j]==1: count +=1
+    return count
+
+def getNextGen (listfg) -> list:
     nextgen = listfg
     for i in range(0, len(nextgen)):
         for j in range(0, len(nextgen[0])):
-            if nextgen[i][j] == 0 and getNeighbors(nextgen, i, j) == birthNeibors: #birthday NPS
+            if nextgen[i][j] == 0 and getNeighbors(nextgen, i, j) == 3: #birthday NPS
                 nextgen[i][j] = 1
-            if nextgen[i][j] == 1 and minneighbors <= getNeighbors(nextgen, i, j) <= maxneighbors: #dead NPS
+            if nextgen[i][j] == 1 and 2 <= getNeighbors(nextgen, i, j) <= 3: #dead NPS
                 continue
             else:
                 nextgen[i][j] = 0
@@ -129,46 +133,44 @@ def randomNPS(dicp, listfg):
                 Draw(dicp, (i+1)*10, (1+j)*10, BLACK)
     pass
 
-def window(percent=0, Min=2, Max=3, Birth=3):
-    listFirstGen = [[choice([1, 0, 0, 0, 0, 0, 0, 0]) for j in range(int(HEIGTH/10))] for i in range(int(WIGHT/10))]
-    listNextGen = [[choice([1, 0, 0, 0, 0, 0, 0, 0]) for j in range(int(HEIGTH/10))] for i in range(int(WIGHT/10))]
+def window():
+    listFirstGen = [[choice([0, 0, 0, 0, 0, 0, 0, 0]) for j in range(int(HEIGTH/10))] for i in range(int(WIGHT/10))]
+    listNextGen = [[choice([0, 0, 0, 0, 0, 0, 0, 0]) for j in range(int(HEIGTH/10))] for i in range(int(WIGHT/10))]
     sc = display.set_mode((WIGHT, HEIGTH))
     sc.fill(BLACK)
-    Flexxxxxx = True
+    Flexxxxxx = True; run = False
     drawNet(sc, WIGHT, HEIGTH)
     randomNPS(sc, listFirstGen)
     display.update()
+
     #TIME.sleep(1)
     while Flexxxxxx:
+        Key = key.get_pressed();
         for ev in event.get():
             if ev.type == QUIT:
                 Flexxxxxx = False
-            if ev.type == MOUSEBUTTONDOWN:
-                drawNPS(sc, mouse.get_pos()[0], mouse.get_pos()[1])
+            elif ev.type == MOUSEBUTTONDOWN and listFirstGen[int(mouse.get_pos()[0]/10)][int(mouse.get_pos()[1]/10)] == 0:
+                drawNPS(sc, mouse.get_pos()[0], mouse.get_pos()[1], WHITE)
                 listFirstGen[int(mouse.get_pos()[0]/10)][int(mouse.get_pos()[1]/10)] = 1
-        listNextGen = getNextGen(listFirstGen, Min, Max, Birth)
-        for i in range(0, int((WIGHT*HEIGTH)/100 * percent/100)):
-            listNextGen[randint(0, len(listNextGen)-1)][randint(0, len(listNextGen[0])-1)] = 0
-        randomNPS(sc, listNextGen)
-        display.update()
-        TIME.sleep(0.1)
-        listFirstGen = listNextGen
+            elif ev.type == MOUSEBUTTONDOWN and listFirstGen[int(mouse.get_pos()[0]/10)][int(mouse.get_pos()[1]/10)] == 1:
+                drawNPS(sc, mouse.get_pos()[0], mouse.get_pos()[1], BLACK)
+                listFirstGen[int(mouse.get_pos()[0]/10)][int(mouse.get_pos()[1]/10)] = 0
+            elif Key[K_SPACE]:
+                 run = not run
+        if run:
+            listNextGen = getNextGen(listFirstGen)
+
+            randomNPS(sc, listNextGen)
+            display.update()
+            TIME.sleep(0.1)
+            listFirstGen = listNextGen
     clock.tick(FPS)
 
 
 author()
 rules()
 print("Также вы можете внести изменения в игру")
-try:
-    PERCENT = input("процент рандомной смертности [0 .. 100] >>> ")
-    MIN = input("Минимальное кол-во соседей [1..7]>>>")
-    MAX = input("Максимальное кол-во соседей [2..8]>>>")
-    BIRTH = input("Кол-во 'родителей' [1..8]>>>")
-    b = int(input("Are you ready? [1]"))
-
-    if b == 1:
-        window(int(PERCENT), int(MIN), int(MAX), int(BIRTH))
-    print("die")
-except Exception:
+b= int(input("Are you ready? [1]"))
+if b == 1:
     window()
-    print("die")
+print("die")
